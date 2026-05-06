@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  bot:
+    build: .
+    container_name: whatsapp-burger-bot
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./burger_bot.db:/app/burger_bot.db
+      - ./storage.json:/app/storage.json
+      - ./clientes.json:/app/clientes.json
+      - ./orders.json:/app/orders.json
+      - wwebjs_auth:/app/.wwebjs_auth
+      - wwebjs_cache:/app/.wwebjs_cache
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+
+volumes:
+  wwebjs_auth:
+  wwebjs_cache:
