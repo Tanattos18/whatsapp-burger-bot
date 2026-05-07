@@ -32,11 +32,14 @@ inicializarPedidos();
 
 /**
  * Cria um novo pedido para o cliente
+ * @param {string} telefone - Número de telefone do cliente
+ * @param {string} chatId - ID do chat do WhatsApp (para notificações futuras)
  */
-function criarPedido(telefone) {
+function criarPedido(telefone, chatId = null) {
   const pedido = {
     id:        uuidv4(),
     telefone:  telefone,
+    chatId:    chatId,
     itens:     [],
     total:     0,
     status:    'novo',
@@ -44,7 +47,7 @@ function criarPedido(telefone) {
   };
   pedidosAtivos[telefone] = pedido;
   salvarPedidoAtivo(pedido);
-  console.log(`🛒 Novo pedido | ${telefone} | ID: ${pedido.id}`);
+  console.log(`🛒 Novo pedido | ${telefone} | ChatID: ${chatId || 'N/A'} | ID: ${pedido.id}`);
   return pedido;
 }
 

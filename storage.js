@@ -71,11 +71,25 @@ try {
 }
 
 // ──────────────────────────────────────────────
+// Migration: adiciona coluna 'chatId' na tabela 'pedidos', se não existir
+// ──────────────────────────────────────────────
+try {
+  db.exec(`ALTER TABLE pedidos ADD COLUMN chatId TEXT`);
+  console.log('📌 Coluna "chatId" adicionada à tabela pedidos');
+} catch (e) {
+  if (e.message.includes('duplicate column name')) {
+    // Coluna já existe, tudo ok
+  } else {
+    console.error('❌ Erro ao adicionar coluna chatId:', e.message);
+  }
+}
+
+// ──────────────────────────────────────────────
 // Prepared Statements (mais rápidos e seguros)
 // ──────────────────────────────────────────────
 const stmtInserirPedido = db.prepare(`
-  INSERT OR REPLACE INTO pedidos (id, telefone, total, status, criado_em, ativo)
-  VALUES (@id, @telefone, @total, @status, @criado_em, 0)
+  INSERT OR REPLACE INTO pedidos (id, telefone, total, status, criado_em, ativo, chatId)
+  VALUES (@id, @telefone, @total, @status, @criado_em, 0, @chatId)
 `);
 
 const stmtInserirItem = db.prepare(`
@@ -140,7 +154,8 @@ function salvarPedidoAtivo(pedido) {
       telefone:  p.telefone,
       total:     p.total,
       status:    p.status || 'novo',
-      criado_em: p.criadoEm
+      criado_em: p.criadoEm,
+      chatId:    p.chatId || null // Inclui o chatId ao salvar
     });
 
     stmtLimparItensAtivos.run(p.id);
@@ -191,7 +206,8 @@ function salvarPedido(pedido) {
       telefone:  p.telefone,
       total:     p.total,
       status:    p.status,
-      criado_em: p.criadoEm
+      criado_em: p.criadoEm,
+      chatId:    p.chatId || null
     });
 
     stmtLimparItensAtivos.run(p.id);

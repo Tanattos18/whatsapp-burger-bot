@@ -1,29 +1,33 @@
 /**
  * index.js — Ponto de entrada v2
- * Inicia o bot WhatsApp + painel web simultaneamente
+ *
+ * Comportamento:
+ * - SEMPRE inicia o painel web primeiro
+ * - WhatsApp só é conectado via painel admin
  */
 
-// ⚠️ Carrega dotenv PRIMEIRO, antes de qualquer outro require
 require('dotenv').config();
 
-const { startBot }      = require('./bot');
-const { iniciarPainel } = require('./painel');
+const { iniciarPainel, setWhatsAppClient } = require('./painel');
+const { getClient } = require('./bot');
 
 console.log('');
 console.log('╔══════════════════════════════════════╗');
 console.log('║   🍔  ZÉ DELIVERY BOT  v2.0         ║');
+console.log('║   Painel aguardando conexão...      ║');
 console.log('╚══════════════════════════════════════╝');
 console.log('');
 
-// Inicia o painel web de pedidos
 iniciarPainel();
 
-// Inicia o bot do WhatsApp
-console.log('📱 Iniciando conexão com WhatsApp...');
-console.log('   Aguarde o QR Code para escanear.\n');
-startBot();
+const intervalo = setInterval(() => {
+  const client = getClient();
+  if (client) {
+    setWhatsAppClient(client);
+    clearInterval(intervalo);
+  }
+}, 1000);
 
-// Shutdown limpo ao pressionar Ctrl+C
 process.on('SIGINT', () => {
   console.log('\n👋 Encerrando bot... Até logo!');
   process.exit(0);

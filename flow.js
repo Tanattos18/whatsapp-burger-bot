@@ -91,6 +91,16 @@ const PALAVRAS_INICIO = [
   'menu','cardápio','cardapio','inicio','início','começo','start'
 ];
 
+function isBotOnline() {
+  try {
+    const { getStatusWhatsApp } = require('./bot');
+    const status = getStatusWhatsApp();
+    return status.status === 'conectado';
+  } catch (e) {
+    return false;
+  }
+}
+
 function getEstado(telefone) {
   if (!estadosUsuarios[telefone]) {
     estadosUsuarios[telefone] = { estagio: 'INICIO', itemSelecionado: null };
@@ -202,9 +212,12 @@ setInterval(cleanupEstadosAntigos, 60 * 60 * 1000);
 /**
  * Processa uma mensagem e retorna a(s) resposta(s) do bot
  * Pode retornar array de mensagens para envios sequenciais
+ * @param {string} telefone - Número do telefone normalizado
+ * @param {string} texto - Mensagem do usuário
+ * @param {string} chatId - ID do chat do WhatsApp (para notificações)
  * @returns {string | string[]}
  */
-async function processMessage(telefone, texto) {
+async function processMessage(telefone, texto, chatId = null) {
   const textoLower = texto.toLowerCase().trim();
   const estado = getEstado(telefone);
 
@@ -217,6 +230,16 @@ async function processMessage(telefone, texto) {
 
   // Palavras de boas-vindas reiniciam a conversa
   if (PALAVRAS_INICIO.includes(textoLower)) {
+    if (!isBotOnline()) {
+      return (
+        '🔌 *WhatsApp desconectado*\n\n' +
+        'O bot está temporariamente fora do ar.\n' +
+        'Aguarde até que o administrador conecte novamente.\n\n' +
+        '📱 Problemas? Entre em contato diretamente.\n' +
+        '_Pedimos desculpas pelo transtorno._ 😊'
+      );
+    }
+
     const { aberto, inicio, fim, motivo } = verificarHorario();
     if (!aberto) {
       return mensagemFechado(inicio, fim, motivo);
@@ -259,7 +282,7 @@ async function processMessage(telefone, texto) {
       return handleCadastroEndereco(telefone, texto);
 
     case 'MENU':
-      return handleMenu(telefone, textoLower);
+      return handleMenu(telefone, textoLower, chatId);
 
     case 'PEDIDO':
       return handlePedido(telefone, texto, textoLower);
@@ -294,7 +317,7 @@ function mensagemBoasVindas() {
 // HANDLERS
 // ═══════════════════════════════════════════════════════
 
-function handleMenu(telefone, textoLower) {
+function handleMenu(telefone, textoLower, chatId = null) {
   if (textoLower === 'cardapio' || textoLower === 'menu_cardapio') {
     return '📋 *CARDÁPIO* 🍔\n\n' + getCardapioTexto() +
       '\n\n━━━━━━━━━━━━━━━━━━━━━━\n' +
@@ -306,7 +329,7 @@ function handleMenu(telefone, textoLower) {
     if (!aberto) {
       return mensagemFechado(inicio, fim, motivo);
     }
-    criarPedido(telefone);
+    criarPedido(telefone, chatId);
     setEstado(telefone, { estagio: 'PEDIDO' });
     return '📖 *COMO FAZER SEU PEDIDO* 📖\n\n' +
       '━━━━━━━━━━━━━━━━━━━━━━\n\n' +
@@ -323,11 +346,11 @@ function handleMenu(telefone, textoLower) {
   }
 
   if (textoLower === '1') {
-    return handleMenu(telefone, 'cardapio');
+    return handleMenu(telefone, 'cardapio', chatId);
   }
 
   if (['2', 'fazer pedido', 'pedido'].includes(textoLower)) {
-    return handleMenu(telefone, 'fazer_pedido');
+    return handleMenu(telefone, 'fazer_pedido', chatId);
   }
 
   return (
